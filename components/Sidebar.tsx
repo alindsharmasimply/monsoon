@@ -17,9 +17,11 @@ import {
   MdSearch,
 } from 'react-icons/md';
 import { useEffect, useState } from 'react';
+import { usePlaylist } from '../lib/hooks';
 
 const Sidebar = () => {
   const [mounted, setMounted] = useState(false);
+  const { playlists } = usePlaylist();
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -56,7 +58,7 @@ const Sidebar = () => {
       route: '/favorites',
     },
   ];
-  const playlists = new Array(30).fill(1).map((_, i) => `Playlist ${i + 1}`);
+  //const playlists = new Array(30).fill(1).map((_, i) => `Playlist ${i + 1}`);
   return (
     <Box
       height='calc(100vh - 100px)'
@@ -117,11 +119,11 @@ const Sidebar = () => {
         <Divider color='gray.800' />
         <Box height='57%' overflowY='auto' paddingY='20px'>
           <List spacing={2}>
-            {playlists.map((playlist) => (
-              <ListItem paddingX='20px' key={playlist}>
+            {playlists?.map((playlist) => (
+              <ListItem paddingX='20px' key={playlist.id}>
                 <LinkBox>
                   <NextLink href='/'>
-                    <LinkOverlay>{playlist}</LinkOverlay>
+                    <LinkOverlay>{playlist.name}</LinkOverlay>
                   </NextLink>
                 </LinkBox>
               </ListItem>
