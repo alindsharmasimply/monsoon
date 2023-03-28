@@ -12,8 +12,15 @@ import {
 import { BsFillPlayCircleFill } from 'react-icons/bs';
 import { AiOutlineClockCircle } from 'react-icons/ai';
 import { formatDate, formatTime } from '../lib/formatters';
+import { useStoreActions } from 'easy-peasy';
 
 const SongsTable = ({ songs }) => {
+  const playSongs = useStoreActions((store: any) => store.changeActiveSongs);
+  const setActiveSong = useStoreActions((store: any) => store.changeActiveSong);
+  const handlePlay = (activeSong?) => {
+    setActiveSong(activeSong || songs[0]);
+    playSongs(songs);
+  };
   return (
     <Box bg='transparent' color='white'>
       <Box padding='10px' marginBottom='20px'>
@@ -30,13 +37,22 @@ const SongsTable = ({ songs }) => {
               border: 'solid',
               borderColor: 'white',
             }}
+            onClick={() => handlePlay()}
           />
         </Box>
         <TableContainer>
-          <Table variant='unstyled'>
+          <Table
+            variant='simple'
+            width='100%'
+            style={{
+              borderSpacing: '20px',
+              borderCollapse: 'separate',
+            }}
+          >
             <Thead
               borderBottom='1px solid'
               borderColor='rgba(255, 255, 255, 0.2)'
+              textAlign='left'
             >
               <Tr>
                 <Th>#</Th>
@@ -57,7 +73,8 @@ const SongsTable = ({ songs }) => {
                     },
                   }}
                   key={song.id}
-                  cursor='cursor'
+                  cursor='pointer'
+                  onClick={() => handlePlay(song)}
                 >
                   <Td>{index + 1}</Td>
                   <Td>{song.name}</Td>
