@@ -11,7 +11,7 @@ import {
   Text,
 } from '@chakra-ui/react';
 import { useStoreActions } from 'easy-peasy';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactHowler from 'react-howler';
 import {
   MdGraphicEq,
@@ -22,14 +22,33 @@ import {
   MdSkipNext,
   MdSkipPrevious,
 } from 'react-icons/md';
+import { formatTime } from '../lib/formatters';
 
 const Player = ({ songs, activeSong }) => {
   const [playing, setPlaying] = useState(true);
   const [index, setIndex] = useState(0);
   const [seek, setSeek] = useState(0.0);
+  const [isSeeking, setIsSeeking] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [duration, setDuration] = useState(0.0);
+  const soundRef = useRef(null);
+
+  useEffect(() => {
+    let timerId;
+
+    if (playing && !isSeeking) {
+      const f = () => {
+        setSeek(soundRef.current.seek());
+        timerId = requestAnimationFrame(f);
+      };
+
+      timerId = requestAnimationFrame(f);
+      return () => cancelAnimationFrame(timerId);
+    }
+
+    cancelAnimationFrame(timerId);
+  }, [playing, isSeeking]);
 
   const onShuffle = () => {
     setShuffle((state) => !state);
@@ -38,10 +57,57 @@ const Player = ({ songs, activeSong }) => {
   const onRepeat = () => {
     setRepeat((state) => !state);
   };
+
+  const prevSong = () => {
+    setIndex((state) => {
+      return state ? state - 1 : songs.length - 1;
+    });
+  };
+
+  const nextSong = () => {
+    setIndex((state) => {
+      if (shuffle) {
+        const next = Math.floor(Math.random() * songs.length);
+
+        if (next === state) {
+          return nextSong();
+        }
+        return next;
+      }
+
+      return state === songs.length - 1 ? 0 : state + 1;
+    });
+  };
+
+  const onEnd = () => {
+    if (repeat) {
+      setSeek(0);
+      soundRef.current.seek(0);
+    } else {
+      nextSong();
+    }
+  };
+
+  const onLoad = () => {
+    const songDuration = soundRef.current.duration();
+    setDuration(songDuration);
+  };
+
+  const onSeek = (e) => {
+    setSeek(parseFloat(e[0]));
+    soundRef.current.seek(e[0]);
+  };
+
   return (
     <Box>
       <Box>
-        <ReactHowler playing={playing} src={activeSong?.url} />
+        <ReactHowler
+          playing={playing}
+          src={activeSong?.url}
+          ref={soundRef}
+          onLoad={onLoad}
+          onEnd={onEnd}
+        />
       </Box>
       <Center color='green.600'>
         <ButtonGroup>
@@ -60,6 +126,7 @@ const Player = ({ songs, activeSong }) => {
             aria-label='skip'
             fontSize='24px'
             icon={<MdSkipPrevious />}
+            onClick={prevSong}
           />
           {playing ? (
             <IconButton
@@ -84,7 +151,7 @@ const Player = ({ songs, activeSong }) => {
           <IconButton
             outline='none'
             variant='link'
-            aria-label='skip'
+            aria-label='next'
             fontSize='24px'
             icon={<MdSkipNext />}
           />
@@ -102,31 +169,36 @@ const Player = ({ songs, activeSong }) => {
       <Box color='green.500'>
         <Flex justify='center' align='center'>
           <Box width='10%'>
-            <Text fontSize='xs'>1:21</Text>
+            <Text fontSize='xs'>{formatTime(seek)}</Text>
           </Box>
           <Box width='80%'>
             <RangeSlider
               aria-label={['min', 'max']}
               step={1}
               min={0}
-              max={3000}
+              id='player-range'
+              max={duration ? (duration.toFixed(2) as unknown as number) : 0}
               height='10px'
+              onChange={onSeek}
+              value={[seek]}
+              onChangeStart={() => setIsSeeking(true)}
+              onChangeEnd={() => setIsSeeking(false)}
             >
               <RangeSliderTrack bg='green.800' height='2px'>
                 <RangeSliderFilledTrack bg='green.600' height='2px' />
               </RangeSliderTrack>
-              <RangeSliderThumb index={0} boxSize={5}>
+              <RangeSliderThumb index={0}>
                 <Box
                   color='tomato'
                   as={MdGraphicEq}
                   backgroundColor='white'
-                  top='50%'
+                  position='absolute'
                 />
               </RangeSliderThumb>
             </RangeSlider>
           </Box>
           <Box width='10%' textAlign='right'>
-            <Text fontSize='xs'>321</Text>
+            <Text fontSize='xs'>{formatTime(duration)}</Text>
           </Box>
         </Flex>
       </Box>
